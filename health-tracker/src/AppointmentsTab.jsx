@@ -65,7 +65,40 @@ function ApptForm({ initial, onSave, onCancel, title }) {
   const [f, setF] = useState(initial || blank)
   const set = k => e => setF(p => ({ ...p, [k]: e.target.value }))
   const valid = f.doctor && f.date && f.time
+  function addToGoogleCalendar(appt) {
+  const [h, m] = appt.time.split(':').map(Number);
+  const start = new Date(appt.date);
+  start.setHours(h, m, 0, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000); // שעה אחת
 
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `תור רפואי: ${appt.doctor}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `${appt.notes || ''}${appt.phone ? '\nטלפון: ' + appt.phone : ''}`,
+    location: appt.place || '',
+    sf: 'true',
+    output: 'xml',
+  });
+
+  const url = 'https://www.google.com/calendar/render?' + params.toString();
+  window.open(url, '_blank');
+}
+// ... (סוף ה-div של התאריך בשורה 108) ...
+  </div> 
+</div>
+
+{/* כאן תוסיף את הכפתור */}
+<button 
+  onClick={() => addToGoogleCalendar(f)}
+  style={{ ...BigBtn, marginTop: 10, width: '100%' }}
+>
+  📅 הוסף ליומן גוגל
+</button>
+
+</Card> // סגירת ה-Card
   return (
     <Card style={{ padding: 18, marginBottom: 14 }}>
       <div style={{ fontSize: SZ.md, fontWeight: 800, marginBottom: 16 }}>{title}</div>
@@ -102,6 +135,28 @@ function ApptForm({ initial, onSave, onCancel, title }) {
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <BigBtn label="שמור" icon="✅" onClick={() => valid && onSave(f)} disabled={!valid} />
+        {/* כאן הכפתור הקיים שלך */}
+    <BigBtn label="שמור" icon="✅" onClick={() => valid && onSave(f)} disabled={!valid} />
+    
+    {/* תדביק את הכפתור החדש כאן: */}
+    <button 
+      onClick={() => addToGoogleCalendar(f)}
+      style={{ 
+          marginTop: 10, 
+          width: '100%', 
+          padding: '10px', 
+          cursor: 'pointer', 
+          backgroundColor: '#4285f4', 
+          color: 'white', 
+          border: 'none', 
+          borderRadius: '8px' 
+      }}
+    >
+      📅 הוסף ליומן גוגל
+    </button>
+
+    {/* הכפתור הקיים לביטול */}
+    <button onClick={onCancel} style={{ ...
         <button onClick={onCancel} style={{
           flex: 1, borderRadius: 14, border: `2px solid ${C.border}`, background: C.bg,
           fontSize: SZ.md, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, padding: '14px 0', color: C.muted,
