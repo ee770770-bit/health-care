@@ -3,6 +3,63 @@ import { C, SZ, FONT, APT_COLORS, fmtDate, daysLeft } from './constants'
 import { BigBtn, Card, SectionTitle, inputStyle, labelStyle } from './components'
 import { speak, scheduleApptReminders } from './notifications'
 
+function addToGoogleCalendar(appt) {
+  const [h, m] = appt.time.split(':').map(Number)
+  const start = new Date(appt.date)
+  start.setHours(h, m, 0, 0)
+  const end = new Date(start.getTime() + 60 * 60 * 1000) // 1 hour
+
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `תור רפואי: ${appt.doctor}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `${appt.notes || ''}${appt.phone ? '\nטלפון: ' + appt.phone : ''}`,
+    location: appt.place || '',
+    sf: 'true',
+    output: 'xml',
+  })
+
+  window.open(`https://calendar.google.com/calendar/render?${params}`, '_blank')
+}
+
+function addToAppleCalendar(appt) {
+  const [h, m] = appt.time.split(':').map(Number)
+  const start = new Date(appt.date)
+  start.setHours(h, m, 0, 0)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'BEGIN:VEVENT',
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:תור רפואי: ${appt.doctor}`,
+    `LOCATION:${appt.place || ''}`,
+    `DESCRIPTION:${appt.notes || ''}`,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT24H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:תזכורת לתור רפואי מחר!',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n')
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `tor-${appt.doctor.replace(/\s+/g, '-')}.ics`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+
 function ApptForm({ initial, onSave, onCancel, title }) {
   const blank = { doctor: '', date: '', time: '', place: '', phone: '', notes: '', color: C.sky }
   const [f, setF] = useState(initial || blank)
